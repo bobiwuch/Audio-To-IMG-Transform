@@ -1,0 +1,52 @@
+function AMP = ImgToAudBlockOpp(imageFileName,Fs) 
+%Give it the name of the image file and the frequency(Fs) of the underlying
+%audiofile.
+
+IMG = imread(imageFileName);
+
+[r,c] = size(IMG);
+
+numSamples = r*c;
+
+if numSamples/Fs < 10
+    numBlockCols = ceil(numSamples/44100);    %This paramater determines the width of the final image
+else
+    numBlockCols = 10;
+end
+
+blockSize = 210;
+numBlockRows = ceil((numSamples/(blockSize^2))/numBlockCols);
+
+amp = zeros(numSamples,1);
+amp = cast(amp,'double');
+ampNew = amp + 32768;
+
+%totalBlocks = ceil(numSamples / blockSize^2);
+
+hashTable = buildLookupOpp();
+
+keySet = zeros(65536,3);
+valueSet = [1:65536];
+
+samp = 1;
+
+for x = 1:blockSize:(numBlockRows)*(blockSize)
+    for y = 1:blockSize:(numBlockCols)*(blockSize)
+        for i = x: x+blockSize-1            
+            for j = y: y+blockSize-1
+               if(samp > numSamples)
+                   break;
+               end
+               p = ampNew(samp);
+               IMG(i,j,:) = hashTable(p+1,:);
+               samp = samp+1;
+               
+            end
+        end
+    end
+end
+
+IMG = cast(IMG,'uint8');
+imshow(IMG);
+imwrite(IMG,strcat(imageFileName,'.bmp'));
+end
